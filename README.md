@@ -1,3 +1,6 @@
+This project is a fork of AudioPlaybackConnector.
+This fork focuses on Windows 11 stability improvements and bug fixes.
+
 # AudioPlaybackConnector
 **English** | [简体中文](https://github.com/ysc3839/AudioPlaybackConnector/blob/master/README.zh_CN.md)
 
