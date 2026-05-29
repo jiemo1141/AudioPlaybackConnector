@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include "resource.h"
 
 using namespace winrt::Windows::Data::Json;
@@ -37,6 +38,8 @@ NOTIFYICONIDENTIFIER g_niid = {
 UINT WM_TASKBAR_CREATED = 0;
 bool g_reconnect = false;
 std::vector<std::wstring> g_lastDevices;
+
+inline std::atomic<bool> g_shuttingDown = false;
 
 #include "Util.hpp"
 #include "I18n.hpp"

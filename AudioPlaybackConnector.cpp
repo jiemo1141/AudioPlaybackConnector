@@ -101,19 +101,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_DESTROY:
-		for (const auto& connection : g_audioPlaybackConnections)
+		g_shuttingDown = true;
 		{
-			connection.second.second.Close();
-			g_devicePicker.SetDisplayStatus(connection.second.first, {}, DevicePickerDisplayStatusOptions::None);
+			auto localConnections = std::move(g_audioPlaybackConnections);
+			g_audioPlaybackConnections.clear();
+			for (const auto& connection : localConnections)
+			{
+				connection.second.second.Close();
+				g_devicePicker.SetDisplayStatus(connection.second.first, {}, DevicePickerDisplayStatusOptions::None);
+			}
 		}
 		if (g_reconnect)
 		{
 			SaveSettings();
-			g_audioPlaybackConnections.clear();
 		}
 		else
 		{
-			g_audioPlaybackConnections.clear();
 			SaveSettings();
 		}
 		Shell_NotifyIconW(NIM_DELETE, &g_nid);
@@ -291,6 +294,7 @@ void SetupMenu()
 
 winrt::fire_and_forget ConnectDevice(DevicePicker picker, DeviceInformation device)
 {
+	if (g_shuttingDown) co_return;
 	picker.SetDisplayStatus(device, _(L"Connecting"), DevicePickerDisplayStatusOptions::ShowProgress | DevicePickerDisplayStatusOptions::ShowDisconnectButton);
 
 	bool success = false;
@@ -304,6 +308,7 @@ winrt::fire_and_forget ConnectDevice(DevicePicker picker, DeviceInformation devi
 			g_audioPlaybackConnections.emplace(device.Id(), std::pair(device, connection));
 
 			connection.StateChanged([](const auto& sender, const auto&) {
+				if (g_shuttingDown) return;
 				if (sender.State() == AudioPlaybackConnectionState::Closed)
 				{
 					auto it = g_audioPlaybackConnections.find(std::wstring(sender.DeviceId()));
@@ -317,7 +322,9 @@ winrt::fire_and_forget ConnectDevice(DevicePicker picker, DeviceInformation devi
 			});
 
 			co_await connection.StartAsync();
+			if (g_shuttingDown) co_return;
 			auto result = co_await connection.OpenAsync();
+			if (g_shuttingDown) co_return;
 
 			switch (result.Status())
 			{
@@ -373,8 +380,9 @@ winrt::fire_and_forget ConnectDevice(DevicePicker picker, DeviceInformation devi
 		auto it = g_audioPlaybackConnections.find(std::wstring(device.Id()));
 		if (it != g_audioPlaybackConnections.end())
 		{
-			it->second.second.Close();
+			auto connection = std::move(it->second.second);
 			g_audioPlaybackConnections.erase(it);
+			connection.Close();
 		}
 		picker.SetDisplayStatus(device, errorMessage, DevicePickerDisplayStatusOptions::ShowRetryButton);
 	}
@@ -383,6 +391,7 @@ winrt::fire_and_forget ConnectDevice(DevicePicker picker, DeviceInformation devi
 winrt::fire_and_forget ConnectDevice(DevicePicker picker, std::wstring_view deviceId)
 {
 	auto device = co_await DeviceInformation::CreateFromIdAsync(deviceId);
+	if (g_shuttingDown) co_return;
 	ConnectDevice(picker, device);
 }
 
@@ -403,8 +412,9 @@ void SetupDevicePicker()
 		auto it = g_audioPlaybackConnections.find(std::wstring(device.Id()));
 		if (it != g_audioPlaybackConnections.end())
 		{
-			it->second.second.Close();
+			auto connection = std::move(it->second.second);
 			g_audioPlaybackConnections.erase(it);
+			connection.Close();
 		}
 		sender.SetDisplayStatus(device, {}, DevicePickerDisplayStatusOptions::None);
 	});
