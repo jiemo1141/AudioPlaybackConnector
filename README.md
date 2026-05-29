@@ -10,6 +10,11 @@ Microsoft added Bluetooth A2DP Sink to Windows 10 2004. However, a third-party a
 There is already an app can do this job. However it can't hide to notification area and it's not open-source.\
 So I write this app, provide a simple, modern and open-source alternative.
 
+# Fork Information
+This project is a fork of [AudioPlaybackConnector](https://github.com/ysc3839/AudioPlaybackConnector) by ysc3839.
+
+This fork focuses on Windows 11 stability improvements, bug fixes, and better runtime reliability.
+
 # Preview
 ![Preview](https://cdn.jsdelivr.net/gh/ysc3839/AudioPlaybackConnector@master/AudioPlaybackConnector.gif)
 
